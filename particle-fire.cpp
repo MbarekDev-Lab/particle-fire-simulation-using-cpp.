@@ -3,6 +3,7 @@
 // Author      : M'Barek Benraiss
 // Description : Particle Fire/Explosion Simulation using SDL2
 // Concepts    : Particle systems, physics simulation, color interpolation
+//              Performance optimization, multiple effect modes, interactive control
 //============================================================================
 
 #include <iostream>
@@ -10,9 +11,19 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <string>
 #include <SDL.h>
 
 using namespace std;
+
+// Effect modes for different particle effects
+enum EffectMode
+{
+    FIRE_MODE,      // Yellow/orange fire effect
+    SMOKE_MODE,     // Gray smoke effect
+    EXPLOSION_MODE, // Fast reddish explosion
+    ICE_MODE        // Blue/cyan ice particles
+};
 
 // ============================================================================
 // Section 1: Particle Structure - Represents a single particle in the system
@@ -86,16 +97,50 @@ private:
     double emitterX;
     double emitterY;
     int particlesPerFrame;
+    EffectMode currentMode;
+    int frameCount;
 
 public:
     ParticleEmitter(double x, double y, int pps = 5)
-        : emitterX(x), emitterY(y), particlesPerFrame(pps) {}
+        : emitterX(x), emitterY(y), particlesPerFrame(pps),
+          currentMode(FIRE_MODE), frameCount(0) {}
 
     // Set emitter position
     void setPosition(double x, double y)
     {
         emitterX = x;
         emitterY = y;
+    }
+
+    // Change effect mode
+    void setEffectMode(EffectMode mode)
+    {
+        currentMode = mode;
+        particles.clear();
+    }
+
+    // Set emission rate
+    void setEmissionRate(int pps)
+    {
+        particlesPerFrame = (pps < 1) ? 1 : pps;
+    }
+
+    // Get current mode name
+    string getModeName() const
+    {
+        switch (currentMode)
+        {
+        case FIRE_MODE:
+            return "FIRE";
+        case SMOKE_MODE:
+            return "SMOKE";
+        case EXPLOSION_MODE:
+            return "EXPLOSION";
+        case ICE_MODE:
+            return "ICE";
+        default:
+            return "UNKNOWN";
+        }
     }
 
     // Emit new particles (fire/explosion effect)
@@ -111,14 +156,47 @@ public:
 
             // Random life duration
             double life = 2.0 + (rand() % 100) / 100.0;
+            double size = 2.0 + (rand() % 4);
 
             // Fire colors: yellow to red to dark
             int r = 255;
             int g = 150 + (rand() % 100);
             int b = 0;
 
-            // Random size
-            double size = 2.0 + (rand() % 4);
+            // Adjust based on effect mode
+            switch (currentMode)
+            {
+            case SMOKE_MODE:
+                // Gray smoke effect
+                r = 150 + (rand() % 80);
+                g = 150 + (rand() % 80);
+                b = 150 + (rand() % 80);
+                vy *= 0.5;   // Slower rise for smoke
+                size *= 1.5; // Larger particles
+                break;
+
+            case EXPLOSION_MODE:
+                // Reddish explosive effect
+                r = 255;
+                g = 50 + (rand() % 80);
+                b = 0;
+                speed *= 2.0; // Faster particles
+                vx *= 1.5;
+                vy *= 1.5;
+                break;
+
+            case ICE_MODE:
+                // Cyan/blue ice effect
+                r = 50 + (rand() % 50);
+                g = 150 + (rand() % 100);
+                b = 255;
+                break;
+
+            case FIRE_MODE:
+            default:
+                // Default fire mode already set above
+                break;
+            }
 
             // Create and add particle
             particles.emplace_back(emitterX, emitterY, vx, vy,
@@ -337,12 +415,78 @@ public:
             break;
 
         case SDL_KEYDOWN:
-            if (event.key.keysym.sym == SDLK_ESCAPE)
-            {
-                running = false;
-            }
+            handleKeyPress(event.key.keysym.sym);
             break;
         }
+    }
+
+    // Handle keyboard input for mode switching
+    void handleKeyPress(SDL_Keycode key)
+    {
+        switch (key)
+        {
+        case SDLK_ESCAPE:
+        case SDLK_q:
+            running = false;
+            break;
+
+        case SDLK_1: // Fire mode
+            emitter.setEffectMode(FIRE_MODE);
+            cout << "Mode: FIRE" << endl;
+            break;
+
+        case SDLK_2: // Smoke mode
+            emitter.setEffectMode(SMOKE_MODE);
+            cout << "Mode: SMOKE" << endl;
+            break;
+
+        case SDLK_3: // Explosion mode
+            emitter.setEffectMode(EXPLOSION_MODE);
+            cout << "Mode: EXPLOSION" << endl;
+            break;
+
+        case SDLK_4: // Ice mode
+            emitter.setEffectMode(ICE_MODE);
+            cout << "Mode: ICE" << endl;
+            break;
+
+        case SDLK_UP: // Increase particles
+            emitter.setEmissionRate(emitter.getEmissionRate() + 5);
+            cout << "Emission rate: " << emitter.getEmissionRate() << endl;
+            break;
+
+        case SDLK_DOWN: // Decrease particles
+            emitter.setEmissionRate(emitter.getEmissionRate() - 5);
+            cout << "Emission rate: " << emitter.getEmissionRate() << endl;
+            break;
+
+        case SDLK_r: // Reset
+            emitter.setEffectMode(FIRE_MODE);
+            cout << "Reset to FIRE mode" << endl;
+            break;
+
+        case SDLK_h: // Help
+            printControls();
+            break;
+        }
+    }
+
+    // Print control information
+    void printControls() const
+    {
+        cout << "\n=== PARTICLE FIRE SIMULATION CONTROLS ===" << endl;
+        cout << "1 - Fire mode" << endl;
+        cout << "2 - Smoke mode" << endl;
+        cout << "3 - Explosion mode" << endl;
+        cout << "4 - Ice mode" << endl;
+        cout << "UP - Increase particle emission" << endl;
+        cout << "DOWN - Decrease particle emission" << endl;
+        cout << "R - Reset to Fire mode" << endl;
+        cout << "H - Show this help message" << endl;
+        cout << "ESC/Q - Exit" << endl;
+        cout << "Mouse - Move to control emitter position" << endl;
+        cout << "========================================\n"
+             << endl;
     }
 
     // Simple info display
@@ -388,6 +532,10 @@ int main()
 {
     // Create and run application
     ParticleFireApp app(1000, 700);
+
+    // Display controls on startup
+    app.printControls();
+
     app.run();
 
     cout << "Particle Fire Simulation closed." << endl;
