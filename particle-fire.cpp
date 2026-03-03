@@ -125,6 +125,12 @@ public:
         particlesPerFrame = (pps < 1) ? 1 : pps;
     }
 
+    // Get emission rate
+    int getEmissionRate() const
+    {
+        return particlesPerFrame;
+    }
+
     // Get current mode name
     string getModeName() const
     {
