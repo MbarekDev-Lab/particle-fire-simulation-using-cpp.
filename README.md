@@ -124,6 +124,15 @@ Or use the helper script:
 ./tools/run_smoke_test.sh
 ```
 
+Or from the project root:
+
+```bash
+mkdir -p build && cd build
+cmake ..
+make
+./particle-fire
+```
+
 ## Author
 
-Created by M'Barek Benraiss. 
+Created by M'Barek Benraiss.
