@@ -1,188 +1,120 @@
-# Particle Fire Simulation Using C++
+# Particle Fire Simulation
 
-An interactive **particle fire/explosion simulation** using SDL2 graphics library. Move your mouse to emit particles and watch them simulate realistic fire behavior with physics.
+A particle fire/explosion simulation using **SDL2** and direct pixel buffer manipulation in **C++17**.
 
-## Features
+Thousands of particles explode outward from the center with a 3×3 box-blur glow effect and sine-wave color cycling.
 
-- **Particle System**: Dynamic creation and management of thousands of particles
-- **Physics Simulation**: 
-  - Gravity affecting particles over time
-  - Velocity and acceleration
-  - Air resistance (damping)
-  - Smooth interpolated motion
-- **Visual Effects**:
-  - Fire-like color gradients (yellow → orange → red → dark)
-  - Fade-out effect based on particle lifetime
-  - Real-time rendering with SDL2
-- **Interactive**: Follow your mouse cursor with particle emissions
-- **Performance**: Frame-rate independent updates using delta time
+## Project Structure
 
-## Building
+```
+├── CMakeLists.txt              # Build system (3 targets)
+├── src/
+│   ├── main.cpp                # Application entry point
+│   ├── Screen.h / Screen.cpp   # RAII SDL wrapper + pixel buffers + box blur
+│   ├── Particle.h / Particle.cpp # Single particle (polar velocity)
+│   └── Swarm.h / Swarm.cpp     # Manages 5000 particles
+├── examples/
+│   └── sdl-basics.cpp          # Standalone SDL2 tutorial
+├── tests/
+│   └── smoke_test.cpp          # Headless smoke test (PPM output)
+├── tools/
+│   ├── run_smoke_test.sh       # Build + run smoke test
+│   └── run_valgrind.sh         # Optional Valgrind memory check
+├── docs/
+│   └── CHANGELOG.md            # Change history and rationale
+├── .clang-format               # Code style configuration
+├── .editorconfig               # Editor settings
+├── CONTRIBUTING.md             # Coding guidelines
+└── README.md                   # This file
+```
 
-### Prerequisites
+## Prerequisites
 
-1. **SDL2** installed via Homebrew (macOS):
-   ```bash
-   brew install sdl2
-   ```
+| Platform | Install SDL2                                                                |
+| -------- | --------------------------------------------------------------------------- |
+| macOS    | `brew install sdl2`                                                         |
+| Ubuntu   | `sudo apt install libsdl2-dev`                                              |
+| Windows  | `vcpkg install sdl2` or download from [libsdl.org](https://www.libsdl.org/) |
 
-2. **CMake** (for building):
-   ```bash
-   brew install cmake
-   ```
+CMake ≥ 3.10 and a C++17 compiler are also required.
 
-3. **C++ Compiler** (Clang on macOS, g++ on Linux/Windows):
-   - macOS: Built-in with Xcode Command Line Tools
-   - Linux: `sudo apt install g++`
-   - Windows: Visual Studio or MinGW
-
-### Build Instructions
+## Build & Run
 
 ```bash
-# Clone repository
-git clone https://github.com/MbarekDev-Lab/particle-fire-simulation-using-cpp.git
-cd particle-fire-simulation-using-cpp
-
-# Create build directory
-mkdir build && cd build
-
-# Configure and build
+# Configure + build all targets
+mkdir -p build && cd build
 cmake ..
-make
+make            # or: cmake --build .
 
-# Run
+# Run the simulation
 ./particle-fire
+
+# Run the SDL basics example
+./sdl-basics
 ```
 
-### Expected Output
-A window opens showing a black background. Move your mouse around the screen to emit particles that create a fire-like effect.
+## Run the Smoke Test
 
-## How It Works
+The smoke test validates the pixel buffer, box blur, and RAII cleanup in headless mode:
 
-### Architecture
+```bash
+# Option A: use the provided script
+./tools/run_smoke_test.sh
 
+# Option B: manual
+cd build
+cmake .. && make smoke-test
+mkdir -p out
+./smoke-test
+# → produces out/frame0.ppm
 ```
-┌─────────────────────────────────────┐
-│   ParticleFireApp (Main Application)│
-├─────────────────────────────────────┤
-│  • Event handling (SDL_PollEvent)   │
-│  • Main update/render loop          │
-│  • Window management                │
-└─────────────┬───────────────────────┘
-              │
-         creates
-              │
-         ┌────▼──────────────────────────┐
-         │  ParticleEmitter             │
-         ├────────────────────────────────┤
-         │  • Manages particle vector    │
-         │  • Updates all particles      │
-         │  • Removes dead particles     │
-         │  • Emits new particles       │
-         └────┬──────────────────────────┘
-              │
-         manages
-              │
-         ┌────▼──────────────────────────┐
-         │  Particle (struct)            │
-         ├────────────────────────────────┤
-         │  • Position (x, y)            │
-         │  • Velocity (vx, vy)          │
-         │  • Color (r, g, b)            │
-         │  • Life (0.0 to 1.0)          │
-         │  • Size and physics           │
-         └────┬──────────────────────────┘
-              │
-         uses
-              │
-         ┌────▼──────────────────────────┐
-         │  Renderer (SDL wrapper)       │
-         ├────────────────────────────────┤
-         │  • SDL_Renderer abstraction   │
-         │  • Drawing primitives        │
-         │  • Screen management         │
-         └──────────────────────────────┘
-```
-
-### Particle Lifecycle
-
-1. **Emission**: `ParticleEmitter::emit()` creates particles at cursor position
-2. **Update**: `Particle::update()` applies physics each frame
-   - Position += Velocity * deltaTime
-   - Velocity += Gravity * deltaTime
-   - All velocities *= damping factor
-   - Life decreases over time
-3. **Render**: `Renderer::drawParticle()` displays each particle
-   - Color based on type (fire = yellow/orange)
-   - Alpha (transparency) based on remaining life
-   - Size decreases as it ages (optional)
-4. **Removal**: Dead particles (life ≤ 0) removed from vector
-
-### Physics Implementation
-
-Each particle is affected by:
-
-**Gravity**:
-```cpp
-vy += gravity * deltaTime;  // Default: 0.1
-```
-
-**Air Resistance**:
-```cpp
-vx *= 0.99;  // 1% deceleration per frame
-vy *= 0.99;
-```
-
-**Velocity-based Position**:
-```cpp
-x += vx * deltaTime;
-y += vy * deltaTime;
-```
-
-### Color Interpolation
-
-Fire particles use RGB values that create realistic flame colors:
-- **Bright yellow**: (255, 200, 0) - hottest (birth)
-- **Orange**: (255, 120, 0) - hot
-- **Dark red**: (200, 0, 0) - cooling
-- **Black**: (0, 0, 0) - dead/cooled
-
-### Delta Time (Frame-Rate Independence)
-
-```cpp
-Uint32 currentTime = SDL_GetTicks();
-double deltaTime = (currentTime - lastTime) / 1000.0;
-lastTime = currentTime;
-
-// Now update uses deltaTime:
-particle.update(deltaTime);  // Same speed regardless of FPS
-```
-
-This ensures smooth animation at 30 FPS or 120 FPS.
 
 ## Controls
 
-| Key/Input | Action |
-|-----------|--------|
+| Input        | Action |
+| ------------ | ------ |
+| Close window | Quit   |
+
+## Key Concepts Demonstrated
+
+- **Pixel buffer manipulation** — writing RGBA values directly to a texture
+- **RGBA8888 bit packing** — `(red << 24) | (green << 16) | (blue << 8) | 0xFF`
+- **3×3 box blur** — convolution kernel averaging each pixel with its neighbors
+- **Polar-to-Cartesian conversion** — `dx = speed × cos(θ)`, `dy = speed × sin(θ)`
+- **Frame-rate independence** — delta time between frames drives all movement
+- **RAII** — `std::vector` for buffers, destructor for SDL cleanup, no manual `new`/`delete`
+- **Move semantics** — Screen supports move constructor / move assignment
+
+## License
+
+See [LICENSE](LICENSE).
+
+## Controls
+
+| Key/Input          | Action                        |
+| ------------------ | ----------------------------- |
 | **Mouse Movement** | Move emitter to follow cursor |
-| **ESC** | Exit application |
-| **Close Window** | Exit application |
+| **ESC**            | Exit application              |
+| **Close Window**   | Exit application              |
 
 ## Code Structure
 
 ### Section 1: Particle Structure
+
 - `struct Particle`: Individual particle data and behavior
 - `update()`: Apply physics each frame
 - `isAlive()`: Check if particle still visible
 - `getAlpha()`: Calculate transparency for fade effect
 
 ### Section 2: ParticleEmitter
+
 - `ParticleEmitter` class: Manages all particles
 - `emit()`: Generate new particles at random velocities/colors
 - `update()`: Update all particles, remove dead ones
 - `getParticles()`: Return particle list for rendering
 
 ### Section 3: Renderer
+
 - `Renderer` class: SDL2 abstraction layer
 - `drawParticle()`: Render single particle as rectangle
 - `drawParticles()`: Render all particles from emitter
@@ -190,6 +122,7 @@ This ensures smooth animation at 30 FPS or 120 FPS.
 - `present()`: Display frame to user
 
 ### Section 4: Application
+
 - `ParticleFireApp` class: Main application
 - `run()`: Main loop (events → update → render)
 - `handleEvent()`: Process keyboard/window events
@@ -200,16 +133,19 @@ This ensures smooth animation at 30 FPS or 120 FPS.
 ### Easy Modifications
 
 1. **Change emission rate**:
+
    ```cpp
    emitter = ParticleEmitter(width/2, height-100, 20);  // More particles
    ```
 
 2. **Adjust gravity**:
+
    ```cpp
    particle.update(deltaTime, 0.05);  // Less gravity - smoke-like
    ```
 
 3. **Change colors** (in `emit()`):
+
    ```cpp
    // Blue fire effect
    int r = 0;
@@ -235,16 +171,19 @@ This ensures smooth animation at 30 FPS or 120 FPS.
 ## Performance Considerations
 
 - **Vector Reserve**: Pre-allocate vector capacity for smoother allocation
+
   ```cpp
   particles.reserve(10000);  // Avoid frequent reallocations
   ```
 
 - **Delta Time Cap**: Prevent huge jumps when frame drops
+
   ```cpp
   if (deltaTime > 0.016) deltaTime = 0.016;
   ```
 
 - **Particle Limit**: Cap maximum particles to maintain FPS
+
   ```cpp
   if (particles.size() > 5000) return;  // Limit creation
   ```
@@ -254,19 +193,23 @@ This ensures smooth animation at 30 FPS or 120 FPS.
 ## Troubleshooting
 
 ### "SDL not found" Error
+
 ```bash
 brew install sdl2
 brew reinstall sdl2  # If already installed
 ```
 
 ### "command not found: sdl2-config"
+
 Indicates SDL2 not properly installed. Try:
+
 ```bash
 brew uninstall sdl2
 brew install sdl2
 ```
 
 ### Build Fails with CMake Errors
+
 ```bash
 rm -rf build/
 mkdir build && cd build
@@ -275,6 +218,7 @@ make
 ```
 
 ### No Particles Visible / Black Screen
+
 - Ensure window is focused
 - Move your mouse around the window
 - Check that SDL2 initialized successfully (check console output)
@@ -289,7 +233,7 @@ By studying this project, you'll learn:
 ✅ **SDL2 Graphics**: Cross-platform rendering library  
 ✅ **Performance Optimization**: Frame-rate independent updates  
 ✅ **Memory Management**: Dynamic allocation with vectors  
-✅ **Delta Time**: Making smooth animation at any frame rate  
+✅ **Delta Time**: Making smooth animation at any frame rate
 
 ## References
 
