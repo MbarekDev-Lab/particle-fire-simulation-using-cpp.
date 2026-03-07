@@ -89,166 +89,41 @@ mkdir -p out
 
 See [LICENSE](LICENSE).
 
-## Controls
+## Expected Output
 
-| Key/Input          | Action                        |
-| ------------------ | ----------------------------- |
-| **Mouse Movement** | Move emitter to follow cursor |
-| **ESC**            | Exit application              |
-| **Close Window**   | Exit application              |
+```
+$ mkdir -p build && cd build && cmake .. && make
+-- SDL2 include: /opt/homebrew/Cellar/sdl2/2.32.10/include;/opt/homebrew/Cellar/sdl2/2.32.10/include/SDL2
+-- SDL2 libs:    SDL2::SDL2
+-- C++ standard: 17
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+[ 40%] Built target particle-core
+[ 60%] Built target particle-fire
+[ 80%] Built target sdl-basics
+[100%] Built target smoke-test
 
-## Code Structure
+$ mkdir -p out && ./smoke-test
+=== Particle Fire Smoke Test ===
+Test 1: Screen init (64x64)... OK
+  (RAII destructor: OK)
+Test 2: setPixel + buffer read... OK (127 lit pixels)
+Test 3: Out-of-bounds setPixel... OK (no crash)
+Test 4: boxBlur changes pixel buffer... OK (127 → 4096 lit pixels)
+Test 5: Write out/frame0.ppm... OK
+Test 6: Particle initRandom + update + respawn... OK
+Test 7: Swarm creation and update... OK
+Test 8: clear() resets buffer... OK
 
-### Section 1: Particle Structure
-
-- `struct Particle`: Individual particle data and behavior
-- `update()`: Apply physics each frame
-- `isAlive()`: Check if particle still visible
-- `getAlpha()`: Calculate transparency for fade effect
-
-### Section 2: ParticleEmitter
-
-- `ParticleEmitter` class: Manages all particles
-- `emit()`: Generate new particles at random velocities/colors
-- `update()`: Update all particles, remove dead ones
-- `getParticles()`: Return particle list for rendering
-
-### Section 3: Renderer
-
-- `Renderer` class: SDL2 abstraction layer
-- `drawParticle()`: Render single particle as rectangle
-- `drawParticles()`: Render all particles from emitter
-- `clear()`: Clear screen for next frame
-- `present()`: Display frame to user
-
-### Section 4: Application
-
-- `ParticleFireApp` class: Main application
-- `run()`: Main loop (events → update → render)
-- `handleEvent()`: Process keyboard/window events
-- `drawInfo()`: Display statistics (prepared for text rendering)
-
-## Customization Ideas
-
-### Easy Modifications
-
-1. **Change emission rate**:
-
-   ```cpp
-   emitter = ParticleEmitter(width/2, height-100, 20);  // More particles
-   ```
-
-2. **Adjust gravity**:
-
-   ```cpp
-   particle.update(deltaTime, 0.05);  // Less gravity - smoke-like
-   ```
-
-3. **Change colors** (in `emit()`):
-
-   ```cpp
-   // Blue fire effect
-   int r = 0;
-   int g = 150 + (rand() % 100);
-   int b = 255;
-   ```
-
-4. **Particle lifetime**:
-   ```cpp
-   double life = 0.5 + (rand() % 100) / 100.0;  // Shorter lifespan
-   ```
-
-### Advanced Features
-
-- **Collision Detection**: Check particle boundaries, bounce off walls
-- **Wind Effect**: Add horizontal force to all particles
-- **Texture-based Rendering**: Use SDL_Texture instead of rectangles
-- **Text Rendering**: Add SDL_ttf library for FPS display
-- **Multiple Emitters**: Create emitter array for complex effects
-- **Sound Effects**: Add SDL_mixer for audio feedback
-- **Particle Trails**: Store particle history for trail effect
-
-## Performance Considerations
-
-- **Vector Reserve**: Pre-allocate vector capacity for smoother allocation
-
-  ```cpp
-  particles.reserve(10000);  // Avoid frequent reallocations
-  ```
-
-- **Delta Time Cap**: Prevent huge jumps when frame drops
-
-  ```cpp
-  if (deltaTime > 0.016) deltaTime = 0.016;
-  ```
-
-- **Particle Limit**: Cap maximum particles to maintain FPS
-
-  ```cpp
-  if (particles.size() > 5000) return;  // Limit creation
-  ```
-
-- **Simple Rendering**: Rectangles are faster than textures for many particles
-
-## Troubleshooting
-
-### "SDL not found" Error
-
-```bash
-brew install sdl2
-brew reinstall sdl2  # If already installed
+=== ALL 17 CHECKS PASSED ===
 ```
 
-### "command not found: sdl2-config"
-
-Indicates SDL2 not properly installed. Try:
+Or use the helper script:
 
 ```bash
-brew uninstall sdl2
-brew install sdl2
+./tools/run_smoke_test.sh
 ```
-
-### Build Fails with CMake Errors
-
-```bash
-rm -rf build/
-mkdir build && cd build
-cmake ..
-make
-```
-
-### No Particles Visible / Black Screen
-
-- Ensure window is focused
-- Move your mouse around the window
-- Check that SDL2 initialized successfully (check console output)
-
-## Learning Outcomes
-
-By studying this project, you'll learn:
-
-✅ **Particle Systems**: How games/effects create dynamic visuals  
-✅ **Physics Simulation**: Applying real-world forces in code  
-✅ **Object-Oriented Design**: Organizing complex systems with classes  
-✅ **SDL2 Graphics**: Cross-platform rendering library  
-✅ **Performance Optimization**: Frame-rate independent updates  
-✅ **Memory Management**: Dynamic allocation with vectors  
-✅ **Delta Time**: Making smooth animation at any frame rate
-
-## References
-
-- **SDL2 Documentation**: https://wiki.libsdl.org/
-- **Particle Systems**: https://en.wikipedia.org/wiki/Particle_system
-- **Physics in Games**: https://gamedevelopment.tutsplus.com/
-
-## License
-
-MIT License - Feel free to use and modify for learning purposes.
 
 ## Author
 
-Created by M'Barek Benraiss as part of C++ learning progression.
-
----
-
-**Ready to run?** Follow the [Building](#building) section to get started! 🔥
+Created by M'Barek Benraiss. 
