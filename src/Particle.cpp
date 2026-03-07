@@ -26,13 +26,16 @@
 
 namespace particle_sim {
 
+// Portable π constant — M_PI is a POSIX extension, not standard C++.
+static constexpr double PI = 3.14159265358979323846;
+
 Particle::Particle() : x(0), y(0), speed(0), direction(0) {
     initRandom();
 }
 
 void Particle::initRandom() {
     // Random direction: 0 to 2π (full circle — all angles equally likely)
-    direction = (2.0 * M_PI * rand()) / RAND_MAX;
+    direction = (2.0 * PI * rand()) / RAND_MAX;
 
     // Squared speed distribution:
     // normalizedRand ∈ [0, 1], squaring it clusters values near 0.

@@ -72,8 +72,9 @@ void Screen::destroy() noexcept {
     if (m_window) {
         SDL_DestroyWindow(m_window);
         m_window = nullptr;
+        // Only quit SDL if we owned a window (avoids double-quit on move)
+        SDL_Quit();
     }
-    SDL_Quit();
 }
 
 // ---------------------------------------------------------------------------
@@ -142,16 +143,9 @@ void Screen::setPixel(int x, int y, uint8_t red, uint8_t green, uint8_t blue) {
     //   Bits 23-16 : Green
     //   Bits 15-8  : Blue
     //   Bits  7-0  : Alpha (0xFF = fully opaque)
-    //
-    // Built by shifting each channel into position:
-    uint32_t color = 0;
-    color += red;
-    color <<= 8;
-    color += green;
-    color <<= 8;
-    color += blue;
-    color <<= 8;
-    color += 0xFF; // alpha = opaque
+    const uint32_t color = (static_cast<uint32_t>(red) << 24) |
+                           (static_cast<uint32_t>(green) << 16) |
+                           (static_cast<uint32_t>(blue) << 8) | 0xFFu;
 
     m_buffer1[static_cast<std::size_t>(y * m_width + x)] = color;
 }
@@ -230,6 +224,10 @@ bool Screen::processEvents() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
+            return false;
+        }
+        // Allow ESC key to close the window
+        if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
             return false;
         }
     }
