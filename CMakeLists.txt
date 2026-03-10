@@ -41,9 +41,9 @@ target_link_libraries(particle-fire PRIVATE particle-core)
 add_executable(sdl-basics examples/sdl-basics.cpp)
 target_link_libraries(sdl-basics PRIVATE ${SDL2_LIBRARIES})
 
-# ── Practice example ──────────────────────────────────────────────────────────
-add_executable(practice examples/practice.cpp)
-target_link_libraries(practice PRIVATE particle-core)
+# ── Main test example ────────────────────────────────────────────────────────
+add_executable(main-test examples/main_test.cpp)
+target_link_libraries(main-test PRIVATE particle-core)
 
 # ── Smoke test ────────────────────────────────────────────────────────────────
 add_executable(smoke-test tests/smoke_test.cpp)
