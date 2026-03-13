@@ -41,6 +41,7 @@ Each pair of hex digits is one channel:
 
 Computers store numbers in binary. Each color channel uses **8 bits** (1 byte):
 
+
 ```
 0x123456 in binary:
 

@@ -33,6 +33,7 @@ Use the leftmost bit (MSB) as a sign flag:
 ```
 +5 = 0 0000101    (MSB = 0 → positive)
 -5 = 1 0000101    (MSB = 1 → negative)
+
 ```
 
 Problem: this gives you **two zeros** (`+0` and `-0`) and makes arithmetic
